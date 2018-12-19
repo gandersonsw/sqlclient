@@ -11,7 +11,7 @@ import com.graham.tools.MiscTools;
 public class DataManagerList extends DataManager {
 
 	private HashMap<String, AppData> datas;
-	
+
 	public DataManagerList(AppData templateItemParam, List<AppDataScope> accessableScopesParam) {
 		super(templateItemParam, accessableScopesParam);
 	}
@@ -24,7 +24,7 @@ public class DataManagerList extends DataManager {
 		datas = null;
 		fireChanged(new ChangeEventData(null, ChangeEventData.EditType.DRELOAD));
 	}
-	
+
 	private void checkLoaded() {
 		if (datas == null) {
 			datas = new HashMap<String, AppData>();
@@ -34,12 +34,12 @@ public class DataManagerList extends DataManager {
 			}
 		}
 	}
-	
+
 	public Collection<AppData> getList() {
 		checkLoaded();
 		return datas.values();
 	}
-	
+
 	/**
 	 * sorted by primary keys
 	 */
@@ -49,19 +49,19 @@ public class DataManagerList extends DataManager {
 		Arrays.sort(tList2, 0, tList2.length, new AppDataComparator());
 		return tList2;
 	}
-	
+
 	public class AppDataComparator implements Comparator<AppData> {
 		@Override
 		public int compare(AppData arg0, AppData arg1) {
 			return arg0.getPrimaryKey().compareTo(arg1.getPrimaryKey());
 		}
 	}
-	
+
 	public AppData getByPrimaryKey(String key) {
 		checkLoaded();
 		return datas.get(key);
 	}
-	
+
 	private void addOne(AppData d) {
 		String pk = d.updatePrimaryKeyLastPersisted();
 		if (pk == null) {
@@ -73,11 +73,12 @@ public class DataManagerList extends DataManager {
 
 		AppData d2 = getByPrimaryKey(pk);
 		if (d2 != null) {
-			throw new IllegalArgumentException("item with same key already exists:" + d.getClassId() + ":" + pk);
+			System.out.println("item with same key already exists:" + d.getClassId() + ":" + pk);
+			//throw new IllegalArgumentException("item with same key already exists:" + d.getClassId() + ":" + pk);
 		}
 		datas.put(pk, d);
 	}
-	
+
 	/**
 	 * we write immediately to the file here - in the future - may want to be smarter about this and only write at certain intervals or something
 	 * @param d
@@ -90,7 +91,7 @@ public class DataManagerList extends DataManager {
 		writeNamedObjectList(scopesToWrite);
 		fireChanged(new ChangeEventData(d, ChangeEventData.EditType.DNEW));
 	}
-	
+
 	public void addAll(Collection<? extends AppData> items, boolean deleteAllFirst) {
 		Set<AppDataScope> scopesToWrite = new HashSet<>();
 		checkLoaded();
@@ -108,7 +109,7 @@ public class DataManagerList extends DataManager {
 		writeNamedObjectList(scopesToWrite);
 		fireChanged(new ChangeEventData(null, ChangeEventData.EditType.DRELOAD));
 	}
-	
+
 	public void changed(AppData d) {
 		if (d.getPrimaryKey() == null) {
 			throw new IllegalArgumentException("cant modify primary key to null" + d.getClassId());
@@ -131,7 +132,7 @@ public class DataManagerList extends DataManager {
 		writeNamedObjectList(scopesToWrite);
 		fireChanged(ced);
 	}
-	
+
 	public void delete(List<String> kys) {
 		checkLoaded();
 
