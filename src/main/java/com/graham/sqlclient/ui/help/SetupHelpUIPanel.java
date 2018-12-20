@@ -11,6 +11,7 @@ import com.graham.sqlclient.WorkSpaceSettings;
 import com.graham.sqlclient.ui.databrowser.DataBrowserDefinedTable;
 import com.graham.sqlclient.ui.sqltablebrowser.DBMetaTable;
 import com.graham.tools.ConnPool;
+import com.graham.tools.DbParsedUrl;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -226,7 +227,7 @@ public class SetupHelpUIPanel extends AppUIPanelSingleton {
 					ResultSet rs = null;
 					try {
 						stmt = conn.createStatement();
-						rs = stmt.executeQuery("select * from dual");
+						rs = stmt.executeQuery(connPool.getDbClient().getTestSql());
 						hs.statusTxt.setText("Connection verified");
 						helpStepSuccessful(STEP_SETUPDBCONN);
 					} catch (SQLException sqle) {

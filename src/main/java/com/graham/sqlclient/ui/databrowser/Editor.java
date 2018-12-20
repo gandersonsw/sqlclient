@@ -19,7 +19,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import com.graham.sqlclient.SqlClientApp;
-import oracle.sql.CLOB;
+import java.sql.Clob;
 
 import com.graham.appshell.handlers.FloatingFrameQuitListener;
 import com.graham.appshell.handlers.SysWindow2;
@@ -41,12 +41,12 @@ public class Editor {
 	public Editor(SqlClientApp appParam, EditorContext contextParam) {
 		app = appParam;
 		context = contextParam;
-		
+
 		Object obj = context.getEditingObject();
 
 		editingColumnName = context.getColumnName();
 		idVal = context.getId();
-		
+
 		editor = new JFrame();
 		editor.setTitle(context.getTableName() + "[" + idVal + "] " + editingColumnName); // TODO
 		cancelActionClass cac = new cancelActionClass();
@@ -65,7 +65,7 @@ public class Editor {
 		sqlOutput.setEditable(false);
 		bordered2.add(new JScrollPane(sqlOutput), BorderLayout.SOUTH);
 		editor.setContentPane(bordered2);
-		
+
 		String notes = "";
 		if (obj == null || obj instanceof String) {
 			stringFieldEditor = new JTextArea(obj == null ? "" : (String)obj, 6, 40);
@@ -74,8 +74,8 @@ public class Editor {
 			stringFieldEditor.getDocument().addDocumentListener(new textChangeListener());
 			notes = "Type: String";
 			updateSqlText();
-			
-		} else if (obj instanceof CLOB) {
+
+		} else if (obj instanceof Clob) {
 			String sql = "select " + editingColumnName + " from " + context.getTableName() +
 					" where " + context.getIdColumnName() + " = '" + idVal + "'";
 			try {
@@ -91,7 +91,7 @@ public class Editor {
 			isClob = true;
 			notes = "Type: CLOB";
 			updateSqlText();
-			
+
 		} else if (obj instanceof java.math.BigDecimal) {
 			stringFieldEditor = new JTextArea(obj == null ? "" : obj.toString(), 6, 40);
 			JScrollPane sp = new JScrollPane(stringFieldEditor);
@@ -100,9 +100,9 @@ public class Editor {
 			isBigDec = true;
 			notes = "Type: BigDecimal";
 			updateSqlText();
-			
+
 		} else if (obj instanceof java.sql.Date) {
-			
+
 			String sql = "select " + editingColumnName + " from " + context.getTableName() +
 					" where " + context.getIdColumnName() + " = '" + idVal + "'";
 			try {
@@ -111,7 +111,7 @@ public class Editor {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			
+
 			//java.sql.Timestamp d = (java.sql.Timestamp)obj;
 			//java.util.Date d2 = new java.util.Date(d.getTime());
 			stringFieldEditor = new JTextArea(SqlTools.formatTimeStamp((java.sql.Timestamp)obj), 6, 54);
@@ -121,19 +121,19 @@ public class Editor {
 			isDate = true;
 			notes = "Type: Sql Date";
 			updateSqlText();
-			
+
 		} else {
 			System.out.println("other type:" + obj.getClass().getName());
 		}
-		
+
 		bordered.add(new JLabel(notes), BorderLayout.NORTH);
-		
+
 		editor.pack();
 		UITools.center(editor);
 		editor.setVisible(true);
 		app.appsh.addAppQuitListener(new FloatingFrameQuitListener(editor));
 	}
-	
+
 
 	class cancelActionClass extends AbstractAction {
 		private static final long serialVersionUID = 1L;
@@ -144,7 +144,7 @@ public class Editor {
 			editor.setVisible(false);
 		}
 	}
-	
+
 	class saveActionClass extends AbstractAction {
 		private static final long serialVersionUID = 1L;
 		public saveActionClass() {
@@ -171,7 +171,7 @@ public class Editor {
 			}
 		}
 	}
-	
+
 	class textChangeListener implements DocumentListener {
 
 		@Override
@@ -189,22 +189,22 @@ public class Editor {
 			updateSqlText();
 		}
 	}
-	
+
 	void updateSqlText() {
 		sqlOutput.setText(createUpdateFromStringEditor());
 	}
-	
+
 	String createUpdateFromStringEditor() {
-		
+
 		String vv;
 		if (isDate) {
 			vv = "to_date('" + stringFieldEditor.getText() + "','" + SqlTools.getSQLDateFormatString() + "')";
 		} else {
 			vv = "'" + SqlTools.makeTextSqlSafe(stringFieldEditor.getText()) + "'";
 		}
-		
+
 		return "update " + context.getTableName() +
-		     "\n   set " + editingColumnName + "=" + vv + 
+		     "\n   set " + editingColumnName + "=" + vv +
 		     "\n where " + context.getIdColumnName() + " = '" + idVal + "'";
 	}
 }

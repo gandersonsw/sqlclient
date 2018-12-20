@@ -2,6 +2,8 @@
 package com.graham.sqlclient;
 
 import com.graham.tools.UITools;
+import com.graham.tools.DbParsedUrl;
+import com.graham.tools.DbClient;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,6 +18,7 @@ public class EditDBUrl {
 	private JTextField portTF;
 	private JTextField sidTF;
 	private JTextField serviceNameTF;
+	private JTextField paramsTF;
 
 	private JRadioButton serviceNameButton;
 	private JRadioButton sidButton;
@@ -26,19 +29,11 @@ public class EditDBUrl {
 
 	private JTextField driverClassTF;
 
-	static class ParsedUrl {
-		String driverClass;
-		String hostName;
-		String port;
-		String sid;
-		String serviceName;
-	}
-
 	public EditDBUrl(JTextField urlTextParam) {
 
 		urlText = urlTextParam;
 
-		ParsedUrl parsed = parseUrl(urlText.getText());
+		DbParsedUrl parsed = parseUrl(urlText.getText());
 
 		JPanel gridPanel = new JPanel();
 		gridbag = new GridBagLayout();
@@ -114,6 +109,16 @@ public class EditDBUrl {
 			group.add(serviceNameButton);
 		}
 
+		{
+			JLabel lab = new JLabel("Params:");
+			gridbag.setConstraints(lab, labelConstr);
+			gridPanel.add(lab, gridCompIndex++);
+			paramsTF = new JTextField();
+			gridbag.setConstraints(paramsTF, fieldConstr);
+			paramsTF.setText(parsed.extraParams);
+			gridPanel.add(paramsTF, gridCompIndex++);
+		}
+
 		JPanel bottomButtonPanel = new JPanel();
 		bottomButtonPanel.add(new JButton(new CancelEditDBUrl()));
 		bottomButtonPanel.add(new JButton(new SaveEditDBUrl()));
@@ -136,61 +141,16 @@ public class EditDBUrl {
 		//addAppQuitListener(new FloatingFrameQuitListener(te));
 	}
 
-	private ParsedUrl parseUrl(String urlText) {
-		ParsedUrl url = new ParsedUrl();
-		int atLoc = urlText.indexOf("@");
-		if (atLoc != -1) {
-			url.driverClass = urlText.substring(0, atLoc - 1);
-			urlText = urlText.substring(atLoc + 1);
-		}
-
-		int colonLoc = urlText.indexOf(":");
-		if (colonLoc != -1) {
-			url.hostName = urlText.substring(0, colonLoc);
-			urlText = urlText.substring(colonLoc + 1);
-		}
-
-		colonLoc = urlText.indexOf(":");
-		if (colonLoc != -1) {
-			url.port = urlText.substring(0, colonLoc);
-			url.sid = urlText.substring(colonLoc + 1);
-		}
-
-		int slashLoc = urlText.indexOf("/");
-		if (slashLoc != -1) {
-			url.port = urlText.substring(0, slashLoc);
-			url.serviceName = urlText.substring(slashLoc + 1);
-		}
-
-		return url;
+	private DbParsedUrl parseUrl(String urlText) {
+		return DbClient.getClient(urlText).parseUrl(urlText);
 	}
 
-	private String createUrl(ParsedUrl u) {
-		StringBuilder urlStr = new StringBuilder();
-
-		urlStr.append(u.driverClass);
-		urlStr.append(":@");
-		urlStr.append(u.hostName);
-		if (u.port != null && u.port.length() > 0) {
-			urlStr.append(":");
-			urlStr.append(u.port);
-		}
-
-		if (u.sid != null && u.sid.length() > 0) {
-			urlStr.append(":");
-			urlStr.append(u.sid);
-		}
-
-		if (u.serviceName != null && u.serviceName.length() > 0) {
-			urlStr.append("/");
-			urlStr.append(u.serviceName);
-		}
-
-		return urlStr.toString();
+	private String createUrl(DbParsedUrl u) {
+		return DbClient.getClient(u.driverClass).createUrl(u);
 	}
 
-	private ParsedUrl populateUrlFromUI() {
-		ParsedUrl u = new ParsedUrl();
+	private DbParsedUrl populateUrlFromUI() {
+		DbParsedUrl u = new DbParsedUrl();
 		u.driverClass = driverClassTF.getText().trim();
 		u.hostName = hostNameTF.getText().trim();
 		u.port = portTF.getText().trim();
@@ -200,6 +160,7 @@ public class EditDBUrl {
 		if (sidButton.isSelected()) {
 			u.sid = sidTF.getText().trim();
 		}
+		u.extraParams = paramsTF.getText().trim();
 		return u;
 	}
 
@@ -223,7 +184,7 @@ public class EditDBUrl {
 		}
 		@Override
 		public void actionPerformed(ActionEvent arg0) {
-			ParsedUrl url = populateUrlFromUI();
+			DbParsedUrl url = populateUrlFromUI();
 			urlText.setText(createUrl(url));
 			editor.setVisible(false);
 		}

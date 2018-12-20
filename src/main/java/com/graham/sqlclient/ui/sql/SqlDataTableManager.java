@@ -10,8 +10,8 @@ import com.graham.sqlclient.ui.sql.action.CopySqlInsert;
 import com.graham.tools.SearchContext;
 import com.graham.tools.SqlInfo;
 import com.graham.tools.SqlTools;
-import oracle.sql.CLOB;
 
+import java.sql.Clob;
 import javax.swing.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -157,9 +157,9 @@ public class SqlDataTableManager {
 						return;
 					}
 
-					if (obj instanceof CLOB) {
+					if (obj instanceof Clob) {
 						try {
-							obj = SqlTools.getCLOBString((CLOB) obj);
+							obj = SqlTools.getCLOBString((Clob) obj);
 						} catch (SQLException e1) {
 							// TODO Auto-generated catch block
 							e1.printStackTrace();

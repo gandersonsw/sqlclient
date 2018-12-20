@@ -32,7 +32,7 @@ public class ReloadDBMetaData extends AbstractAction {
 	public void actionPerformed(ActionEvent arg0) {
 		loadFromDB();
 	}
-	
+
 	private boolean initSchemas(final ResultSet srs, ArrayList<DBMetaSchema> schemas) throws SQLException {
 		while (srs.next()) {
 			DBMetaSchema s = new DBMetaSchema(srs.getString(1).toUpperCase(), 0, null);
@@ -45,7 +45,7 @@ public class ReloadDBMetaData extends AbstractAction {
 		srs.close();
 		return false;
 	}
-	
+
 	private boolean findTables(ArrayList<DBMetaSchema> schemas, DatabaseMetaData md) throws SQLException {
 		int counter = 0;
 
@@ -62,21 +62,21 @@ public class ReloadDBMetaData extends AbstractAction {
 			}
 			totalTables += schema.tableCount;
 			rs.close();
-			
+
 			if (progressUI.update("Find Tables", 100 * counter / schemas.size())) {
 				return true;
 			}
 		}
 		return false;
 	}
-	
+
 	DBMetaTable findColumnsAndIndexesForTable(DBMetaSchema schema, String tableName, DatabaseMetaData md, Connection conn) throws SQLException {
 		DBMetaTable table = new DBMetaTable(schema.name, tableName);
 		table.columns = new ArrayList<TableColInfo>();
 		table.indexes = new ArrayList<TableIndexInfo>();
-		
 
-		
+
+
 		ResultSet rs = md.getColumns(null, schema.name, tableName, null);
 		while (rs.next()) {
 			TableColInfo ci = new TableColInfo();
@@ -88,27 +88,23 @@ public class ReloadDBMetaData extends AbstractAction {
 			table.columns.add(ci);
 		}
 		rs.close();
-		
+
 		try {
-			Statement stmt = conn.createStatement();
-			ResultSet rs2 = stmt.executeQuery("SELECT index_name, column_name FROM ALL_IND_COLUMNS WHERE table_name = '" + tableName + "' ORDER BY index_name");
-			
-			while (rs2.next()) {
+			List<String[]> arr = app.getConnPool().getDbClient().getTableIndexes(conn, (schema.name != null && schema.name.length() > 0 ? schema.name + "." : "") + tableName);
+			for (String[] ind : arr) {
 				TableIndexInfo ii = new TableIndexInfo();
-				ii.INDEX_NAME = rs2.getString(1);
-				ii.COLUMN_NAME = rs2.getString(2);
+				ii.INDEX_NAME = ind[0];
+				ii.COLUMN_NAME = ind[1];
 				table.indexes.add(ii);
 			}
-			rs2.close();
-			stmt.close();
 		} catch (SQLException sqle) {
 			// ignore this error for now
-			System.out.println("findColumnsAndIndexesForTable:" + sqle.getMessage());
+			System.out.println("findColumnsAndIndexesForTable:" + schema.name + ":" + tableName + ":"+ sqle.getMessage());
 		}
-		
+
 		table.setScope(app.appsh.getActiveWorkspace());
 		return table;
-		
+
 	}
 
 	/**
@@ -119,7 +115,7 @@ public class ReloadDBMetaData extends AbstractAction {
 	 *      indexes
 	 */
 	private void loadFromDB() {
-		
+
 		String tasks[] = {"Initialize Schemas", "Find Tables", "Initialize Tables"};
 		progressUI = new UIProgressDialog();
 		progressUI.show(app.appsh.getMainFrame(), tasks);
@@ -130,7 +126,7 @@ public class ReloadDBMetaData extends AbstractAction {
 			DatabaseMetaData md = conn.getMetaData();
 			ArrayList<DBMetaSchema> schemas = new ArrayList<DBMetaSchema>();
 			totalTables = 0;
-			
+
 			DBMetaSchema noSchema = new DBMetaSchema(DBMetaSchema.NO_SCHMEA, 0, null);
 			noSchema.setScope(app.appsh.getActiveWorkspace());
 			schemas.add(noSchema);
@@ -162,21 +158,21 @@ public class ReloadDBMetaData extends AbstractAction {
 					for (String tableName : schema.tableList) {
 						counter++;
 						tables.add(findColumnsAndIndexesForTable(schema, tableName, md, conn));
-						
+
 						if (progressUI.update("Initialize Tables", 100 * counter / totalTables)) {
 							return;
 						}
 					}
 				}
 			}
-			
+
 			computeColumnIndexInfo(tables);
 
 			app.appsh.getDataManagerList(DBMetaSchema.class).addAll(schemas, true);
 			app.appsh.getDataManagerList(DBMetaTable.class).addAll(tables, true);
-			
+
 			progressUI.close();
-			
+
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -194,9 +190,9 @@ public class ReloadDBMetaData extends AbstractAction {
 			}
 		}
 	}
-	
+
 	private void computeColumnIndexInfo(ArrayList<DBMetaTable> tables) {
-		
+
 		for (DBMetaTable t : tables) {
 			Map<String,List<String>> colIndexes = new HashMap<String,List<String>>();
 			Map<String,Integer> indexCounts = new HashMap<String,Integer>();
@@ -215,7 +211,7 @@ public class ReloadDBMetaData extends AbstractAction {
 					indexCounts.put(i.INDEX_NAME, 1);
 				}
 			}
-			
+
 			Map<String,String> indexDispName = new HashMap<String, String>();
 			int dispNameCounter = 1;
 			for (String indexName : indexCounts.keySet()) {
@@ -227,7 +223,7 @@ public class ReloadDBMetaData extends AbstractAction {
 					dispNameCounter++;
 				}
 			}
-			
+
 			for (TableColInfo tc : t.columns) {
 				if (colIndexes.containsKey(tc.name)) {
 					tc.indexInfo = "";

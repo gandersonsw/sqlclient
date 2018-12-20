@@ -3,6 +3,7 @@ package com.graham.sqlclient;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -22,7 +23,6 @@ import com.graham.appshell.tabui.*;
 import com.graham.sqlclient.ui.help.SetupHelpUIPanel;
 import com.graham.sqlclient.ui.sqlperformance.SqlPerformanceUIPanel;
 import com.graham.tools.SqlTools;
-import oracle.sql.CLOB;
 
 import com.graham.sqlclient.ui.compare.CompareUIPanel;
 import com.graham.sqlclient.ui.databrowser.DataBrowserDefinedRelationship;
@@ -44,13 +44,13 @@ import com.graham.appshell.workunit.WorkUnitsUIPanel;
 import com.graham.tools.ConnPool;
 
 public class SqlClientApp implements AppExtensions {
-	
+
 	private ConnPool connPool;
-	
+
 	public App appsh;
-	
+
 	public List<AppDataScope> acessableScopes;
-	
+
 	public AppUIPanelType getStartupUIPanelType() {
 		return LapaeUIPanelSingletonType.setupHelp;
 	}
@@ -87,7 +87,7 @@ public class SqlClientApp implements AppExtensions {
 	public WorkSpaceSettings getWSS() {
 		return (WorkSpaceSettings)appsh.getDataManagerSingleton(WorkSpaceSettings.class).get();
 	}
-	
+
 	public ConnPool getConnPool() {
 		if (connPool == null) {
 			WorkSpaceSettings s = getWSS();
@@ -98,12 +98,12 @@ public class SqlClientApp implements AppExtensions {
 		}
 		return connPool;
 	}
-	
+
 	public ConnPool getConnPool(String dbGroupName) {
 		if (dbGroupName == null) {
 			return getConnPool();
 		}
-		
+
 		GroupDBIterator iter = new GroupDBIterator(this, dbGroupName);
 		if (iter.hasMore()) {
 			return iter.next();
@@ -118,7 +118,7 @@ public class SqlClientApp implements AppExtensions {
 	}
 
 	/**
-	 * returns list of list.  First item in sub-lists are the column names. 
+	 * returns list of list.  First item in sub-lists are the column names.
 	 * Main list if list of columns. Sub lists are list of rows in the colum.
 	 */
 	public List<List<Object>> runOneSelect(String sql, int resultRowsLimit, String dbGroupName) {
@@ -134,7 +134,7 @@ public class SqlClientApp implements AppExtensions {
 			rs = stmt.executeQuery(sql);
 			ResultSetMetaData md = rs.getMetaData();
 			int colCount = md.getColumnCount() ;
-			
+
 			int rowIndex = 0;
 			for (int colIndex = 1; colIndex <= colCount; colIndex++) {
 				List<Object> a = new ArrayList<Object>();
@@ -173,7 +173,7 @@ public class SqlClientApp implements AppExtensions {
 		}
 		return ret;
 	}
-	
+
 	/**
 	 * this may fail silently
 	 * @param pool
@@ -192,17 +192,9 @@ public class SqlClientApp implements AppExtensions {
 //System.out.println("sql=" + sql);
 			if (rs.next()) {
 				ret = rs.getObject(1);
-				
-				if (ret instanceof CLOB) {
-					StringBuilder sb = new StringBuilder();
-					Reader rdr = ((CLOB)ret).getCharacterStream();
-					char buf[] = new char[1024];
-					int i;
-					while ((i = rdr.read(buf)) > 0) {
-						sb.append(buf,0,i);
-					}
-					rdr.close();
-					ret = sb;
+
+				if (ret instanceof Clob) {
+					ret = SqlTools.getCLOBString((Clob)ret);
 				}
 			}
 		} catch (ClassNotFoundException e) {
@@ -232,7 +224,7 @@ public class SqlClientApp implements AppExtensions {
 		}
 		return ret;
 	}
-	
+
 	public Timestamp runOneSelectTimeStamp(String sql, String dbGroupName) throws SQLException {
 		Connection conn = null;
 		Statement stmt = null;
@@ -270,7 +262,7 @@ public class SqlClientApp implements AppExtensions {
 		}
 		return ret;
 	}
-	
+
 	public int runOneUpdateAndCommit(String sql) throws SQLException {
 		Connection conn = null;
 		Statement stmt = null;
@@ -299,11 +291,11 @@ public class SqlClientApp implements AppExtensions {
 		}
 		return ret;
 	}
-	
+
 	@Override
 	public void init(App appParam) {
 		appsh = appParam;
-		
+
 		// workspace scope
 		// groups
 		DataManagerSingleton wssDM = new DataManagerSingleton(new WorkSpaceSettings(), appsh.getActiveWorkspace());
@@ -311,17 +303,17 @@ public class SqlClientApp implements AppExtensions {
 		setUpAccessebleScopes((WorkSpaceSettings)wssDM.get());
 		wssDM.addDataChangeListener(new workSpaceChangeListener());
 		List<AppDataScope> scopes = acessableScopes;
-		
+
 		appsh.registerDataManager(new DataManagerList(new DataBrowserDefinedTable(this), scopes));
 		appsh.registerDataManager(new DataManagerList(new DataBrowserDefinedRelationship(this), scopes));
 
 		// TODO use the workspace scope for this
 		appsh.registerDataManager(new DataManagerList(new DBMetaSchema(), appsh.getActiveWorkspace()));
 		appsh.registerDataManager(new DataManagerList(new DBMetaTable(), appsh.getActiveWorkspace()));
-		
+
 		appsh.registerDataManager(new DataManagerList(new SQLHistoryItem(), appsh.getActiveWorkspace()));
 	}
-	
+
 	private void setUpAccessebleScopes(WorkSpaceSettings wss) {
 		acessableScopes = new ArrayList<AppDataScope>();
 		acessableScopes.add(appsh.getActiveWorkspace());
@@ -336,17 +328,17 @@ public class SqlClientApp implements AppExtensions {
 	public AppExtensions newInstance() {
 		return new SqlClientApp();
 	}
-	
+
 	public class workSpaceChangeListener implements ChangeListener {
 
 		@Override
 		public void stateChanged(ChangeEvent arg0) {
 			//ChangeEventData ced = (ChangeEventData)arg0.getSource();
 			setUpAccessebleScopes(getWSS());
-			
+
 			appsh.getDataManager(DataBrowserDefinedTable.class).setAccessableScopes(acessableScopes);
 			appsh.getDataManager(DataBrowserDefinedRelationship.class).setAccessableScopes(acessableScopes);
-			
+
 			if (connPool != null) {
 				WorkSpaceSettings s = getWSS();
 				if (s.dbList.size() > 0) {
@@ -356,7 +348,7 @@ public class SqlClientApp implements AppExtensions {
 			}
 		}
 	}
-	
+
 	public DataBrowserUIPanel getOrCreateDataBrowser() {
 
 		ShowAppUIPanel sp = new ShowAppUIPanel(this.appsh, LapaeUIPanelMultipleType.dataBrowser, false);

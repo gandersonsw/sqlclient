@@ -2,7 +2,6 @@
 package com.graham.sqlclient.ui.sql.iterate;
 
 import com.graham.tools.*;
-import oracle.sql.*;
 
 import java.sql.*;
 import java.util.*;
@@ -34,10 +33,10 @@ public class SqlDataArray {
 	public void addRow(ResultSet rs) throws SQLException {
 		for (int i = 1; i <= colCount; i++) {
 			Object d = rs.getObject(i);
-			if (d instanceof CLOB) {
+			if (d instanceof Clob) {
 				if (loadLOBs) {
 					try {
-						d = SqlTools.getCLOBString((CLOB) d);
+						d = SqlTools.getCLOBString((Clob) d);
 					} catch (Exception e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
